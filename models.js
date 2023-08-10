@@ -4,7 +4,7 @@ exports.Contest = class Contest{
         this.name = name;
         this.problems = problems;
         this.rules = rules; // disclaimer with rules, eligibility, etc.
-        this.windowStart = windowStart; // time EST
+        this.windowStart = windowStart;
         this.windowEnd = windowEnd;
         this.duration = duration; // in minutes
     }

@@ -17,12 +17,22 @@ module.exports = {
                 break;
             }
         }
+        datetime = Date.now();
         if(contestParam == null){
             await interaction.reply('Invalid contest code.');
             return;
-        } else {
-            await interaction.user.send(contestParam.name + '\n' + contestParam.rules);
-            await interaction.reply('Instructions have been sent to your DMs.');
         }
+        if(contestParam.windowStart > datetime){
+            await interaction.reply('The contest has not started yet.');
+            return;
+        }
+        if(contestParam.windowEnd < datetime){
+            await interaction.reply('The contest has ended already. :(');
+            return;
+        }
+
+        await interaction.user.send(contestParam.name + '\n' + contestParam.rules);
+        await interaction.reply('Instructions have been sent to your DMs.');
+
     },
 }
