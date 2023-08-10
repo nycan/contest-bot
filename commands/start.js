@@ -30,7 +30,17 @@ module.exports = {
             await interaction.reply('The contest has ended already. :(');
             return;
         }
-
+        if(contestParam.whitelist){
+            if(!contestParam.list.has(interaction.user.id)){
+                await interaction.reply('You are not eligible for this contest.');
+                return;
+            }
+        } else {
+            if(contestParam.list.has(interaction.user.id)){
+                await interaction.reply('You are not eligible for this contest.');
+                return;
+            }
+        }
         await interaction.user.send(contestParam.name + '\n' + contestParam.rules);
         await interaction.reply('Instructions have been sent to your DMs.');
 
