@@ -6,28 +6,20 @@ module.exports = {
     data: new SlashCommandBuilder().setName('start').setDescription('Write a given contest.')
     .addStringOption(option =>option.setName('name').setDescription('The code given for the contest.')),
     async execute(interaction) {
-        const contestsPath = path.join(__dirname, '..','contests');
-        const contestsFiles = fs.readdirSync(contestsPath).filter(file => file.endsWith('.js'));
-        var contestParam = null;
-        for(const file of contestsFiles){
-            const filePath = path.join(contestsPath,file);
-            const contest = require(filePath);
-            if(contest.code == interaction.options.getString('name')){
-                contestParam = contest;
-                break;
-            }
-        }
-        datetime = Date.now();
-        if(contestParam == null){
+        const contestFile = path.join(__dirname, '..','contests',interaction.options.getString('name')+'.js');
+        console.log(contestFile);
+        if(!fs.existsSync(contestFile)){
             await interaction.reply('Invalid contest code.');
             return;
         }
+        const contestParam = require(contestFile);
+        datetime = Date.now();
         if(contestParam.windowStart > datetime){
-            await interaction.reply('The contest has not started yet.');
+            await interaction.reply('The contest has not started yet. It will start on ' + contestParam.windowStart.toString() + '.');
             return;
         }
         if(contestParam.windowEnd < datetime){
-            await interaction.reply('The contest has ended already. :(');
+            await interaction.reply('The contest has ended already. :(. It ended on ' + contestParam.windowEnd.toString() + '.');
             return;
         }
         if(contestParam.whitelist){
