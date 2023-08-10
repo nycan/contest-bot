@@ -1,4 +1,4 @@
-class Contest{
+exports.Contest = class Contest{
     constructor(code, name, problems, rules, windowStart, windowEnd, duration, problemFiles, solutionFiles){
         this.code = code;
         this.name = name;
