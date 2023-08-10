@@ -24,7 +24,7 @@ module.exports = {
             await interaction.reply('You are already in a contest.');
             return;
         }
-        const contestFile = path.join(__dirname, '..','contests',contestCode+'.js');
+        const contestFile = path.join(__dirname, '..','contests',contestCode+'.json');
         console.log(contestFile);
         if(!fs.existsSync(contestFile)){
             await interaction.reply('Invalid contest code.');
@@ -32,21 +32,21 @@ module.exports = {
         }
         const contestParam = require(contestFile);
         datetime = Date.now();
-        if(contestParam.windowStart > datetime){
+        if(new Date(contestParam.windowStart) > datetime){
             await interaction.reply('The contest has not started yet. It will start on ' + contestParam.windowStart.toString() + '.');
             return;
         }
-        if(contestParam.windowEnd < datetime){
+        if(new Date(contestParam.windowEnd) < datetime){
             await interaction.reply('The contest has ended already. :(. It ended on ' + contestParam.windowEnd.toString() + '.');
             return;
         }
         if(contestParam.whitelist){
-            if(!contestParam.list.has(interaction.user.id)){
+            if(!contestParam.list.includes(interaction.user.id)){
                 await interaction.reply('You are not eligible for this contest.');
                 return;
             }
         } else {
-            if(contestParam.list.has(interaction.user.id)){
+            if(contestParam.list.includes(interaction.user.id)){
                 await interaction.reply('You are not eligible for this contest.');
                 return;
             }
