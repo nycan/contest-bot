@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, ButtonBuilder, ActionRowBuilder } = require('discord.js');
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -41,7 +41,17 @@ module.exports = {
                 return;
             }
         }
-        await interaction.user.send(contestParam.name + '\n' + contestParam.rules);
+
+        const confirmEligibility = new ButtonBuilder()
+            .setCustomId('confirmEligibility').setLabel('I\'m eligible for awards/recognition').setStyle(3);
+        const cancelEligibility = new ButtonBuilder()
+            .setCustomId('cancelEligibility').setLabel('I\'m not eligible').setStyle(4);
+        const row = new ActionRowBuilder().addComponents(confirmEligibility, cancelEligibility);
+
+        await interaction.user.send({
+            content: contestParam.name + '\n' + contestParam.rules,
+            components: [row],
+        });
         await interaction.reply('Instructions have been sent to your DMs.');
 
     },
