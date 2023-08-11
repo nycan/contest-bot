@@ -93,7 +93,8 @@ module.exports = {
             const start_text = 'Once you are ready to start the contest, click the button below.\n'+
             'You will have '+contestParam.duration+' minute(s) to complete the contest.\n'+
             'Use `/submit` to submit your solutions.\n'+
-            'Use `/time` to see how much time you have left.';
+            'Use `/time` to see how much time you have left.\n'+
+            'Use `/submissions` to see your current submissions.';
             
             const clicks2 = await r.user.send({
                 content: start_text,
@@ -107,7 +108,7 @@ module.exports = {
     
             collector2.on('collect', async r =>{
                 row2.components[0].setDisabled(true);
-                userParam.timerEnd = Date.now() + contestParam.duration*60000;
+                userParam.timerEnd = Math.min(Date.now() + contestParam.duration*60000, new Date(contestParam.windowEnd));
                 setTimeout(function(){
                     if(userParam.eligible){
                         userParam.completedContests.push(userParam.currContest);
@@ -119,7 +120,7 @@ module.exports = {
                     fs.writeFileSync(userFile, JSON.stringify(userParam));
                     const end_text = 'The contest has ended. You can no longer submit solutions.';
                     r.user.send(end_text);
-                }, contestParam.duration*60000);
+                }, Math.min(contestParam.duration*60000, new Date(contestParam.windowEnd) - Date.now()));
                 fs.writeFileSync(userFile, JSON.stringify(userParam));
                 
                 imgFiles = [];
