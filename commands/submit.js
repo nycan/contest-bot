@@ -8,7 +8,7 @@ module.exports = {
     .addStringOption(option =>option.setName('answer').setDescription('Your answer to the problem.').setRequired(true)),
     async execute(interaction) {
         id = interaction.options.getString('id');
-        answer = interaction.options.getString('Answer');
+        answer = interaction.options.getString('answer');
         if(interaction.channel.type != 1) {
             await interaction.reply('Please use this command in DMs.');
             return;

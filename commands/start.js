@@ -26,7 +26,6 @@ module.exports = {
             return;
         }
         const contestFile = path.join(__dirname, '..','contests',contestCode+'.json');
-        console.log(contestFile);
         if(!fs.existsSync(contestFile)){
             await interaction.reply('Invalid contest code.');
             return;
