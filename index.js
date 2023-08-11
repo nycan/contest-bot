@@ -1,6 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { Client, Collection, Events, GatewayIntentBits } = require('discord.js');
+const { Client, Collection, Events, GatewayIntentBits, ComponentType } = require('discord.js');
 require('dotenv').config()
 token = process.env.DISCORD_TOKEN;
 

@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, ButtonBuilder, ActionRowBuilder } = require('discord.js');
+const { SlashCommandBuilder, ButtonBuilder, ActionRowBuilder, ComponentType } = require('discord.js');
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -52,6 +52,7 @@ module.exports = {
             }
         }
         userParam.currContest = contestCode;
+        fs.writeFileSync(userFile, JSON.stringify(userParam));
 
         const confirmEligibility = new ButtonBuilder()
             .setCustomId('confirmEligibility').setLabel('I\'m eligible for awards/recognition').setStyle(3);
@@ -59,11 +60,55 @@ module.exports = {
             .setCustomId('cancelEligibility').setLabel('I\'m not eligible').setStyle(4);
         const row = new ActionRowBuilder().addComponents(confirmEligibility, cancelEligibility);
 
-        await interaction.user.send({
+        const startTimer = new ButtonBuilder()
+            .setCustomId('startTimer').setLabel('Start my timer!').setStyle(1);
+        const row2 = new ActionRowBuilder().addComponents(startTimer);
+
+        const clicks = await interaction.user.send({
             content: contestParam.name + '\n' + contestParam.rules,
             components: [row],
         });
         await interaction.reply('Instructions have been sent to your DMs.');
-        fs.writeFileSync(userFile, JSON.stringify(userParam));
+
+        const collector = clicks.createMessageComponentCollector({
+            componentType: ComponentType.Button,
+            time: new Date(contestParam.windowEnd) - datetime,
+        });
+
+        collector.on('collect', async r =>{
+            row.components[0].setDisabled(true);
+            row.components[1].setDisabled(true);
+            if(r.customId == 'confirmEligibility'){
+                userParam.eligible = true;
+            } else {
+                userParam.eligible = false;
+            }
+            r.update(contestParam.name + '\n' + contestParam.rules + '\n\nYou have confirmed your eligibility.');
+           
+            const start_text = 'Once you are ready to start the contest, click the button below.\n'+
+            'You will have '+contestParam.duration+' minute(s) to complete the contest.\n'+
+            'Use `/submit` to submit your solutions.\n'+
+            'Use `/time` to see how much time you have left.';
+            
+            const clicks2 = await r.user.send({
+                content: start_text,
+                components: [row2],
+            });
+            
+            const collector2 = clicks2.createMessageComponentCollector({
+                componentType: ComponentType.Button,
+                time: new Date(contestParam.windowEnd) - datetime,
+            });
+    
+            collector2.on('collect', async r =>{
+                userParam.timerEnd = Date.now() + contestParam.duration*60000;
+                fs.writeFileSync(userFile, JSON.stringify(userParam));
+                await r.user.send('Your timer has started!');
+                r.update(start_text + '\n\nYour timer ends at '+new Date(userParam.timerEnd).toString()+'.');
+            });
+
+            collector2.on('end', collected => {});
+        });
+        collector.on('end', collected => {});
     },
 }
