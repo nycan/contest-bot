@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, ButtonBuilder, ActionRowBuilder, ComponentType } = require('discord.js');
+const { SlashCommandBuilder, ButtonBuilder, ActionRowBuilder, ComponentType, AttachmentBuilder } = require('discord.js');
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -17,6 +17,7 @@ module.exports = {
                 currContest: '',
                 eligible: false,
                 timerEnd: 0,
+                answers: [],
                 completedContests: [],
             };
         }
@@ -52,6 +53,7 @@ module.exports = {
             }
         }
         userParam.currContest = contestCode;
+        answers = new Array(contestParam.problems.length).fill(0);
         fs.writeFileSync(userFile, JSON.stringify(userParam));
 
         const confirmEligibility = new ButtonBuilder()
@@ -83,7 +85,7 @@ module.exports = {
             } else {
                 userParam.eligible = false;
             }
-            r.update(contestParam.name + '\n' + contestParam.rules + '\n\nYou have confirmed your eligibility.');
+            r.update({content: contestParam.name + '\n' + contestParam.rules + '\n\nYou have confirmed your eligibility.', components: [row]});
            
             const start_text = 'Once you are ready to start the contest, click the button below.\n'+
             'You will have '+contestParam.duration+' minute(s) to complete the contest.\n'+
@@ -101,10 +103,17 @@ module.exports = {
             });
     
             collector2.on('collect', async r =>{
+                row2.components[0].setDisabled(true);
                 userParam.timerEnd = Date.now() + contestParam.duration*60000;
                 fs.writeFileSync(userFile, JSON.stringify(userParam));
-                await r.user.send('Your timer has started!');
-                r.update(start_text + '\n\nYour timer ends at '+new Date(userParam.timerEnd).toString()+'.');
+                
+                imgFiles = [];
+                for(file of contestParam.problems){
+                    imgFiles.push(new AttachmentBuilder(path.join(__dirname, '..', 'contestfiles', file)));
+                }
+
+                await r.user.send({files: imgFiles});
+                r.update({content: start_text + '\n\nYour timer ends at '+new Date(userParam.timerEnd).toString()+'.', components: [row2]});
             });
 
             collector2.on('end', collected => {});
