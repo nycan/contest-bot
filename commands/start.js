@@ -105,6 +105,18 @@ module.exports = {
             collector2.on('collect', async r =>{
                 row2.components[0].setDisabled(true);
                 userParam.timerEnd = Date.now() + contestParam.duration*60000;
+                setTimeout(function(){
+                    if(userParam.eligible){
+                        userParam.completedContests.push(userParam.currContest);
+                    }
+                    userParam.currContest = '';
+                    userParam.eligible = false;
+                    userParam.timerEnd = 0;
+                    userParam.answers = [];
+                    fs.writeFileSync(userFile, JSON.stringify(userParam));
+                    const end_text = 'The contest has ended. You can no longer submit solutions.';
+                    r.user.send(end_text);
+                }, contestParam.duration*60000);
                 fs.writeFileSync(userFile, JSON.stringify(userParam));
                 
                 imgFiles = [];
