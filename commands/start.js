@@ -52,6 +52,10 @@ module.exports = {
                 return;
             }
         }
+        if(userParam.completedContests.includes(contestCode)){
+            await interaction.reply('You have already completed this contest.');
+            return;
+        }
         userParam.currContest = contestCode;
         answers = new Array(contestParam.problems.length).fill(0);
         fs.writeFileSync(userFile, JSON.stringify(userParam));
