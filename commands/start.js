@@ -113,6 +113,24 @@ module.exports = {
                     if(userParam.eligible){
                         userParam.completedContests.push(userParam.currContest);
                     }
+                    let score = -1;
+                    const graderFile = path.join(__dirname, '..', 'graders', contestParam.grader+'.js');
+                    if(contestParam.autoGrade){
+                        if(!fs.existsSync(graderFile)){
+                            console.error('Grader file not found for contest "'+contestParam.name+'".');
+                        } else {
+                            const grader = require(graderFile);
+                            score = grader.grade(userParam.answers, contestParam.answers);
+                        }
+                    }
+                    const contestParam2 = require(contestFile);
+                    contestParam2.submissions.push({
+                        "user": interaction.user.id,
+                        "time": Date.now(),
+                        "score": score,
+                        "answers": userParam.answers,
+                    });
+                    fs.writeFileSync(contestFile, JSON.stringify(contestParam2));
                     userParam.currContest = '';
                     userParam.eligible = false;
                     userParam.timerEnd = 0;
