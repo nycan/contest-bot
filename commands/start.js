@@ -114,13 +114,14 @@ module.exports = {
                         userParam.completedContests.push(userParam.currContest);
                     }
                     let score = -1;
-                    const graderFile = path.join(__dirname, '..', 'graders', contestParam.grader+'.js');
+                    const graderFile = path.join(__dirname, '..', 'graders', contestCode+'.js');
                     if(contestParam.autoGrade){
                         if(!fs.existsSync(graderFile)){
                             console.error('Grader file not found for contest "'+contestParam.name+'".');
                         } else {
                             const grader = require(graderFile);
-                            score = grader.grade(userParam.answers, contestParam.answers);
+                            score = grader.grade(userParam.answers);
+                            console.log(score);
                         }
                     }
                     const contestParam2 = require(contestFile);
@@ -136,7 +137,10 @@ module.exports = {
                     userParam.timerEnd = 0;
                     userParam.answers = [];
                     fs.writeFileSync(userFile, JSON.stringify(userParam));
-                    const pcRole = interaction.guild.roles.cache.find(role => role.name == contestCode+' postcontest');
+                    let pcRole;
+                    if(interaction.guild){
+                        pcRole = interaction.guild.roles.cache.find(role => role.name == contestCode+' postcontest');
+                    }
                     if(pcRole){
                         console.log(typeof interaction.user);
                         const member = await interaction.guild.members.fetch(interaction.user);
