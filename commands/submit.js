@@ -31,7 +31,7 @@ module.exports = {
             return;
         }
         id = parseInt(id);
-        if(id < 1 || id > contestParam.problems.length){
+        if(id < 1 || id > contestParam.numProblems){
             await interaction.reply('Invalid problem number.');
             return;
         }
