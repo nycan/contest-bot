@@ -32,6 +32,6 @@ module.exports = {
             fields: fields,
             color: 0xd10a0a,
         };
-        await interaction.reply({embeds: [embed]});
+        await interaction.reply({embeds: [embed], ephemeral: true});
     },
 }
