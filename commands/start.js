@@ -4,9 +4,10 @@ const path = require('node:path');
 
 module.exports = {
     data: new SlashCommandBuilder().setName('start').setDescription('Write a given contest.')
-    .addStringOption(option =>option.setName('name').setDescription('The code given for the contest.')),
+    .addStringOption(option =>option.setName('name').setDescription('The code given for the contest.').setRequired(true)),
     async execute(interaction) {
-        contestCode = interaction.options.getString('name');
+        const settings = require(path.join(__dirname, '..','settings.json'));
+        const contestCode = interaction.options.getString('name');
 
         const userFile = path.join(__dirname, '..', 'users', interaction.user.id+'.json');
         let userParam = {};
@@ -110,7 +111,7 @@ module.exports = {
                 row2.components[0].setDisabled(true);
                 userParam.timerEnd = Math.min(Date.now() + contestParam.duration*60000, new Date(contestParam.windowEnd));
                 setTimeout(async function(){
-                    if(userParam.eligible){
+                    if(!settings.debug){
                         userParam.completedContests.push(userParam.currContest);
                     }
                     let score = -1;
@@ -124,12 +125,15 @@ module.exports = {
                         }
                     }
                     const contestParam2 = require(contestFile);
-                    contestParam2.submissions.push({
-                        "user": interaction.user.id,
-                        "time": Date.now(),
-                        "score": score,
-                        "answers": userParam.answers,
-                    });
+                    if(!settings.debug){
+                        contestParam2.submissions.push({
+                            "name": interaction.user.globalName,
+                            "official": userParam.eligible,
+                            "time": Date.now(),
+                            "score": score,
+                            "answers": userParam.answers,
+                        });
+                    }
                     fs.writeFileSync(contestFile, JSON.stringify(contestParam2));
                     userParam.currContest = '';
                     userParam.eligible = false;
@@ -141,7 +145,6 @@ module.exports = {
                         pcRole = interaction.guild.roles.cache.find(role => role.name == contestCode+' postcontest');
                     }
                     if(pcRole){
-                        console.log(typeof interaction.user);
                         const member = await interaction.guild.members.fetch(interaction.user);
                         member.roles.add(pcRole);
                     }
