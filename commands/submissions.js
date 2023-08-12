@@ -21,11 +21,19 @@ module.exports = {
             return;
         }
         fields = [];
-        for(let i = 0; i < userParam.answers.length; ++i){
-            fields.push({
-                name: 'Problem ' + (i+1),
-                value: String(userParam.answers[i]),
-            });
+        const contestParam = require(path.join(__dirname, '..', 'contests', userParam.currContest+'.json'));
+        for(let i = 0; i < contestParam.numProblems; ++i){
+            if(userParam.answers[i]){
+                fields.push({
+                    name: 'Problem ' + (i+1),
+                    value: String(userParam.answers[i]),
+                });
+            } else {
+                fields.push({
+                    name: 'Problem ' + (i+1),
+                    value: 'Not submitted',
+                });
+            }
         }
         const embed = {
             title: 'Your Submissions',
