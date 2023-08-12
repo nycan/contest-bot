@@ -109,7 +109,7 @@ module.exports = {
             collector2.on('collect', async r =>{
                 row2.components[0].setDisabled(true);
                 userParam.timerEnd = Math.min(Date.now() + contestParam.duration*60000, new Date(contestParam.windowEnd));
-                setTimeout(function(){
+                setTimeout(async function(){
                     if(userParam.eligible){
                         userParam.completedContests.push(userParam.currContest);
                     }
@@ -136,7 +136,14 @@ module.exports = {
                     userParam.timerEnd = 0;
                     userParam.answers = [];
                     fs.writeFileSync(userFile, JSON.stringify(userParam));
-                    const end_text = 'The contest has ended. You can no longer submit solutions.';
+                    const pcRole = interaction.guild.roles.cache.find(role => role.name == contestCode+' postcontest');
+                    if(pcRole){
+                        console.log(typeof interaction.user);
+                        const member = await interaction.guild.members.fetch(interaction.user);
+                        member.roles.add(pcRole);
+                    }
+                    const end_text = 'The contest has ended. You can no longer submit solutions.\n'+
+                    'Until the contest window is over, please limit discussion about the contest to the postcontest chat.';
                     r.user.send(end_text);
                 }, Math.min(contestParam.duration*60000, new Date(contestParam.windowEnd) - Date.now()));
                 fs.writeFileSync(userFile, JSON.stringify(userParam));
