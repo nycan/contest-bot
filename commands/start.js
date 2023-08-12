@@ -56,7 +56,7 @@ module.exports = {
             return;
         }
         userParam.currContest = contestCode;
-        answers = new Array(contestParam.problems.length).fill(0);
+        answers = Array.from({length: contestParam.numProblems});
         fs.writeFileSync(userFile, JSON.stringify(userParam));
 
         const confirmEligibility = new ButtonBuilder()
@@ -121,7 +121,6 @@ module.exports = {
                         } else {
                             const grader = require(graderFile);
                             score = grader.grade(userParam.answers);
-                            console.log(score);
                         }
                     }
                     const contestParam2 = require(contestFile);
