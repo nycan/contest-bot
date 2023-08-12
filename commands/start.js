@@ -93,7 +93,8 @@ module.exports = {
             const start_text = 'Once you are ready to start the contest, click the button below.\n'+
             'You will have '+contestParam.duration+' minute(s) to complete the contest.\n'+
             'Use `/submit` to submit your solutions.\n'+
-            'Use `/time` to see how much time you have left.';
+            'Use `/time` to see how much time you have left.\n'+
+            'Use `/submissions` to see your current submissions.';
             
             const clicks2 = await r.user.send({
                 content: start_text,
@@ -107,19 +108,48 @@ module.exports = {
     
             collector2.on('collect', async r =>{
                 row2.components[0].setDisabled(true);
-                userParam.timerEnd = Date.now() + contestParam.duration*60000;
-                setTimeout(function(){
+                userParam.timerEnd = Math.min(Date.now() + contestParam.duration*60000, new Date(contestParam.windowEnd));
+                setTimeout(async function(){
                     if(userParam.eligible){
                         userParam.completedContests.push(userParam.currContest);
                     }
+                    let score = -1;
+                    const graderFile = path.join(__dirname, '..', 'graders', contestCode+'.js');
+                    if(contestParam.autoGrade){
+                        if(!fs.existsSync(graderFile)){
+                            console.error('Grader file not found for contest "'+contestParam.name+'".');
+                        } else {
+                            const grader = require(graderFile);
+                            score = grader.grade(userParam.answers);
+                            console.log(score);
+                        }
+                    }
+                    const contestParam2 = require(contestFile);
+                    contestParam2.submissions.push({
+                        "user": interaction.user.id,
+                        "time": Date.now(),
+                        "score": score,
+                        "answers": userParam.answers,
+                    });
+                    fs.writeFileSync(contestFile, JSON.stringify(contestParam2));
                     userParam.currContest = '';
                     userParam.eligible = false;
                     userParam.timerEnd = 0;
                     userParam.answers = [];
                     fs.writeFileSync(userFile, JSON.stringify(userParam));
-                    const end_text = 'The contest has ended. You can no longer submit solutions.';
+                    let pcRole;
+                    if(interaction.guild){
+                        pcRole = interaction.guild.roles.cache.find(role => role.name == contestCode+' postcontest');
+                    }
+                    if(pcRole){
+                        console.log(typeof interaction.user);
+                        const member = await interaction.guild.members.fetch(interaction.user);
+                        member.roles.add(pcRole);
+                    }
+                    const end_text = 'The contest has ended. You can no longer submit solutions.\n'+
+                    'Until the contest window is over, please limit discussion about the contest to the postcontest chat.';
                     r.user.send(end_text);
-                }, contestParam.duration*60000);
+                }, Math.min(contestParam.duration*60000, new Date(contestParam.windowEnd) - Date.now()));
                 fs.writeFileSync(userFile, JSON.stringify(userParam));
                 
                 imgFiles = [];
