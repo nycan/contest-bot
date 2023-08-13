@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, ModalBuilder, TextInputBuilder, ActionRowBuilder, TextInputStyle } = require('discord.js');
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -35,8 +35,16 @@ module.exports = {
             await interaction.reply('Invalid problem number.');
             return;
         }
-        await interaction.reply({content: 'Your answer has been submitted.', ephemeral: true});
-        userParam.answers[id-1] = answer;
-        fs.writeFileSync(userFile, JSON.stringify(userParam));
+        if(contestParam.longForm){
+            const form = new ModalBuilder().setCustomId('submit').setTitle('Submit Solution to problem '+id);
+            const input = new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('solution').setStyle(TextInputStyle.Paragraph)
+                .setLabel('Your solution.').setPlaceholder('You can use LaTeX here. To submit a file, include a link to it.'));
+            form.addComponents(input);
+            await interaction.showModal(form);
+        } else {
+            await interaction.reply({content: 'Your answer has been submitted.', ephemeral: true});
+            userParam.answers[id-1] = answer;
+            fs.writeFileSync(userFile, JSON.stringify(userParam));
+        }
     },
 }
