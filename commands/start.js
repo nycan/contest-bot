@@ -159,8 +159,20 @@ module.exports = {
                 r.update({content: start_text + '\n\nYour timer ends at '+new Date(userParam.timerEnd).toString()+'.', components: [row2]});
             });
 
-            collector2.on('end', collected => {});
+            collector2.on('end', collected => {
+                startTimer.setDisabled(true);
+                row2.components[0] = startTimer;
+                clicks2.edit({content: "Please use `/start` again, as this interaction has ran out.", components: [row2]});
+                dbclient.collection("users").updateOne({id: interaction.user.id}, {$set: {currContest: '', eligible: false}}, {upsert: true});
+            });
         });
-        collector.on('end', collected => {});
+        collector.on('end', collected => {
+            confirmEligibility.setDisabled(true);
+            cancelEligibility.setDisabled(true);
+            row.components[0] = confirmEligibility;
+            row.components[1] = cancelEligibility;
+            clicks.edit({content: "Please use `/start` again, as this interaction has ran out.", components: [row]});
+            dbclient.collection("users").updateOne({id: interaction.user.id}, {$set: {currContest: '', eligible: false}}, {upsert: true});
+        });
     },
 }
