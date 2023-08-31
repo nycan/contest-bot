@@ -1,36 +1,39 @@
 const { SlashCommandBuilder, ButtonBuilder, ActionRowBuilder } = require('discord.js');
-const fs = require('node:fs');
 const path = require('node:path');
 
 module.exports = {
     data: new SlashCommandBuilder().setName('results').setDescription('View the scoreboard for a contest.')
     .addStringOption(option =>option.setName('contest').setDescription('The contest to see the results of.').setRequired(true))
-    .addBooleanOption(option =>option.setName('official-only').setDescription('Whether to only show official results. True by default.').setRequired(false)),
-    async execute(interaction) {
+    .addBooleanOption(option =>option.setName('show-all').setDescription('Whether to show all results, not just official ones.').setRequired(false)),
+    async execute(interaction, dbclient) {
+        await interaction.deferReply();
         const contestCode = interaction.options.getString('contest');
-        const officialOnly = interaction.options.getBoolean('official only');
-        const contestFile = path.join(__dirname, '..','contests',contestCode+'.json');
-        if(!fs.existsSync(contestFile)){
+        const showAll = interaction.options.getBoolean('show-all');
+        const contestParam = await dbclient.collection("contests").findOne({code: contestCode});
+        const submissions = await dbclient.collection("submissions").find({contest: contestCode});
+        if(!contestParam){
             await interaction.reply('Invalid contest code.');
             return;
         }
         const settings = require(path.join(__dirname, '..','settings.json'));
-        const contestParam = require(contestFile);
         const member = await interaction.guild.members.fetch(interaction.user);
         if(Date.now() < new Date(contestParam.windowEnd) && !member._roles.includes(settings.adminRole)){
-            await interaction.reply('You are not allowed to view the results of a contest that has not ended yet.');
+            await interaction.editReply('You are not allowed to view the results of a contest that has not ended yet.');
             return;
         }
         let results = [];
-        if(officialOnly || officialOnly === undefined){
-            results = contestParam.submissions.filter(submission => submission.official)
+        if(showAll){
+            results = submissions
             .sort((a, b) => parseFloat(b.score) - parseFloat(a.score));
         } else {
-            results = contestParam.submissions
+            results = submissions.filter(submission => submission.official)
             .sort((a, b) => parseFloat(b.score) - parseFloat(a.score));
         }
         const nextPage = new ButtonBuilder()
             .setCustomId('nextPage').setLabel('Next Page').setStyle(1);
+        if(results.length <= 10){
+            nextPage.setDisabled(true);
+        }
         const prevPage = new ButtonBuilder()
             .setCustomId('prevPage').setLabel('Previous Page').setStyle(1).setDisabled(true);
         const row = new ActionRowBuilder().addComponents(prevPage, nextPage);
@@ -52,12 +55,13 @@ module.exports = {
             description: 'Page 1',
             fields: fields,
         };
-        await interaction.reply({embeds: [embed], components: [row]});
+        await interaction.editReply({embeds: [embed], components: [row]});
 
-        const collector = interaction.channel.createMessageComponentCollector({time: 300000});
+        const collector = interaction.channel.createMessageComponentCollector({time: 3600000});
         collector.on('collect', async r => {
+            await r.deferUpdate();
             if(r.user.id != interaction.user.id){
-                r.reply({content: 'Only the user who ran the command can interact with this.', ephemeral: true});
+                r.editReply({content: 'Only the user who ran the command can interact with this.', ephemeral: true});
                 return;
             }
             if(r.customId == 'nextPage'){
@@ -91,7 +95,14 @@ module.exports = {
             }
             embed.fields = fields;
             embed.description = 'Page ' + (lowerBound/10 + 1).toString();
-            r.update({embeds: [embed], components: [row]});
+            r.editReply({embeds: [embed], components: [row]});
+        });
+
+        collector.on('end', async collected => {
+            nextPage.setDisabled(true);
+            prevPage.setDisabled(true);
+            row.setComponents([prevPage, nextPage]);
+            await interaction.editReply({components: [row]});
         });
     },
 }
