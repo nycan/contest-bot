@@ -5,15 +5,12 @@ const path = require('node:path');
 module.exports = {
     data: new SlashCommandBuilder().setName('start').setDescription('Write a given contest.')
     .addStringOption(option =>option.setName('name').setDescription('The code given for the contest.').setRequired(true)),
-    async execute(interaction) {
+    async execute(interaction, dbclient) {
+        await interaction.deferReply();
         const settings = require(path.join(__dirname, '..','settings.json'));
         const contestCode = interaction.options.getString('name');
-
-        const userFile = path.join(__dirname, '..', 'users', interaction.user.id+'.json');
-        let userParam = {};
-        if(fs.existsSync(userFile)){
-            userParam = require(userFile);
-        } else {
+        let userParam = await dbclient.collection("users").findOne({id: interaction.user.id});
+        if(!userParam){
             userParam = {
                 currContest: '',
                 eligible: false,
@@ -23,42 +20,40 @@ module.exports = {
             };
         }
         if(userParam.currContest != ''){
-            await interaction.reply('You are already in a contest.');
+            await interaction.editReply('You are already in a contest.');
             return;
         }
-        const contestFile = path.join(__dirname, '..','contests',contestCode+'.json');
-        if(!fs.existsSync(contestFile)){
-            await interaction.reply('Invalid contest code.');
+        const contestParam = await dbclient.collection("contests").findOne({code: contestCode});
+        if(!contestParam){
+            await interaction.editReply('Invalid contest code.');
             return;
         }
-        const contestParam = require(contestFile);
         datetime = Date.now();
         if(new Date(contestParam.windowStart) > datetime){
-            await interaction.reply('The contest has not started yet. It will start on ' + contestParam.windowStart.toString() + '.');
+            await interaction.editReply('The contest has not started yet. It will start on ' + contestParam.windowStart.toString() + '.');
             return;
         }
         if(new Date(contestParam.windowEnd) < datetime){
-            await interaction.reply('The contest has ended already. :(. It ended on ' + contestParam.windowEnd.toString() + '.');
+            await interaction.editReply('The contest has ended already. :(. It ended on ' + contestParam.windowEnd.toString() + '.');
             return;
         }
         if(contestParam.whitelist){
             if(!contestParam.list.includes(interaction.user.id)){
-                await interaction.reply('You are not eligible for this contest.');
+                await interaction.editReply('You are not eligible for this contest.');
                 return;
             }
         } else {
             if(contestParam.list.includes(interaction.user.id)){
-                await interaction.reply('You are not eligible for this contest.');
+                await interaction.editReply('You are not eligible for this contest.');
                 return;
             }
         }
         if(userParam.completedContests.includes(contestCode)){
-            await interaction.reply('You have already completed this contest.');
+            await interaction.editReply('You have already completed this contest.');
             return;
         }
         userParam.currContest = contestCode;
-        answers = Array.from({length: contestParam.numProblems});
-        fs.writeFileSync(userFile, JSON.stringify(userParam));
+        dbclient.collection("users").updateOne({id: interaction.user.id}, {$set: userParam}, {upsert: true});
 
         const confirmEligibility = new ButtonBuilder()
             .setCustomId('confirmEligibility').setLabel('I\'m eligible for awards/recognition').setStyle(3);
@@ -74,7 +69,7 @@ module.exports = {
             content: contestParam.name + '\n' + contestParam.rules,
             components: [row],
         });
-        await interaction.reply('Instructions have been sent to your DMs.');
+        await interaction.editReply('Instructions have been sent to your DMs.');
 
         const collector = clicks.createMessageComponentCollector({
             componentType: ComponentType.Button,
@@ -106,13 +101,15 @@ module.exports = {
                 componentType: ComponentType.Button,
                 time: new Date(contestParam.windowEnd) - datetime,
             });
-    
+
             collector2.on('collect', async r =>{
                 row2.components[0].setDisabled(true);
                 userParam.timerEnd = Math.min(Date.now() + contestParam.duration*60000, new Date(contestParam.windowEnd));
+                dbclient.collection("users").updateOne({id: interaction.user.id}, {$set: userParam}, {upsert: true});
                 setTimeout(async function(){
+                    const userParam2 = await dbclient.collection("users").findOne({id: interaction.user.id});
                     if(!settings.debug){
-                        userParam.completedContests.push(userParam.currContest);
+                        userParam2.completedContests.push(userParam2.currContest);
                     }
                     let score = -1;
                     const graderFile = path.join(__dirname, '..', 'graders', contestCode+'.js');
@@ -121,25 +118,24 @@ module.exports = {
                             console.error('Grader file not found for contest "'+contestParam.name+'".');
                         } else {
                             const grader = require(graderFile);
-                            score = grader.grade(userParam.answers);
+                            score = grader.grade(userParam2.answers);
                         }
                     }
-                    const contestParam2 = require(contestFile);
                     if(!settings.debug){
-                        contestParam2.submissions.push({
+                        dbclient.collection("submissions").insertOne({
                             "name": interaction.user.globalName,
-                            "official": userParam.eligible,
+                            "official": userParam2.eligible,
                             "time": Date.now(),
                             "score": score,
-                            "answers": userParam.answers,
+                            "answers": userParam2.answers,
                         });
                     }
-                    fs.writeFileSync(contestFile, JSON.stringify(contestParam2));
-                    userParam.currContest = '';
-                    userParam.eligible = false;
-                    userParam.timerEnd = 0;
-                    userParam.answers = [];
-                    fs.writeFileSync(userFile, JSON.stringify(userParam));
+
+                    userParam2.currContest = '';
+                    userParam2.eligible = false;
+                    userParam2.timerEnd = 0;
+                    userParam2.answers = [];
+                    dbclient.collection("users").updateOne({id: interaction.user.id}, {$set: userParam2}, {upsert: true});
                     let pcRole;
                     if(interaction.guild){
                         pcRole = interaction.guild.roles.cache.find(role => role.name == contestCode+' postcontest');
@@ -152,7 +148,6 @@ module.exports = {
                     'Until the contest window is over, please limit discussion about the contest to the postcontest chat.';
                     r.user.send(end_text);
                 }, Math.min(contestParam.duration*60000, new Date(contestParam.windowEnd) - Date.now()));
-                fs.writeFileSync(userFile, JSON.stringify(userParam));
                 
                 imgFiles = [];
                 for(file of contestParam.problems){
