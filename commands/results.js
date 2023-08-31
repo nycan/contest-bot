@@ -61,7 +61,7 @@ module.exports = {
         collector.on('collect', async r => {
             await r.deferUpdate();
             if(r.user.id != interaction.user.id){
-                r.editReply({content: 'Only the user who ran the command can interact with this.', ephemeral: true});
+                r.reply({content: 'Only the user who ran the command can interact with this.', ephemeral: true});
                 return;
             }
             if(r.customId == 'nextPage'){

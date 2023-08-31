@@ -3,21 +3,22 @@ const { SlashCommandBuilder } = require('discord.js');
 module.exports = {
     data: new SlashCommandBuilder().setName('submissions').setDescription('View your current submissions.'),
     async execute(interaction, dbclient) {
+        interaction.deferReply();
         if(interaction.channel.type != 1) {
-            await interaction.reply('Please use this command in DMs.');
+            await interaction.editReply('Please use this command in DMs.');
             return;
         }
         let userParam = await dbclient.collection("users").findOne({id: interaction.user.id});
         if(!userParam){
-            await interaction.reply('You are not in a contest.');
+            await interaction.editReply('You are not in a contest.');
             return;
         }
         if(userParam.currContest == ''){
-            await interaction.reply('You are not in a contest.');
+            await interaction.editReply('You are not in a contest.');
             return;
         }
         if(userParam.timerEnd < Date.now()){
-            await interaction.reply('Your time is up. However, you aren\'t supposed to see this message. Please contact an admin as this means that the bot likely crashed during your window.');
+            await interaction.editReply('Your time is up. However, you aren\'t supposed to see this message. Please contact an admin as this means that the bot likely crashed during your window.');
             return;
         }
         fields = [];
@@ -40,6 +41,6 @@ module.exports = {
             fields: fields,
             color: 0xd10a0a,
         };
-        await interaction.reply({embeds: [embed], ephemeral: true});
+        await interaction.editReply({embeds: [embed], ephemeral: true});
     },
 }

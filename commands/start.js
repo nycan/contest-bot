@@ -103,6 +103,7 @@ module.exports = {
             });
 
             collector2.on('collect', async r =>{
+                r.deferUpdate();
                 row2.components[0].setDisabled(true);
                 userParam.timerEnd = Math.min(Date.now() + contestParam.duration*60000, new Date(contestParam.windowEnd));
                 dbclient.collection("users").updateOne({id: interaction.user.id}, {$set: userParam}, {upsert: true});
