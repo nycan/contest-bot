@@ -102,7 +102,7 @@ module.exports = {
             nextPage.setDisabled(true);
             prevPage.setDisabled(true);
             row.setComponents([prevPage, nextPage]);
-            await interaction.editReply({components: [row]});
+            interaction.editReply({components: [row]});
         });
     },
 }
