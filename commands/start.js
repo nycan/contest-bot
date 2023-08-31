@@ -30,11 +30,11 @@ module.exports = {
         }
         datetime = Date.now();
         if(new Date(contestParam.windowStart) > datetime){
-            interaction.editReply('The contest has not started yet. It will start on ' + contestParam.windowStart.toString() + '.');
+            interaction.editReply('The contest has not started yet. It will start on ' + new Date(contestParam.windowStart).toString() + '.');
             return;
         }
         if(new Date(contestParam.windowEnd) < datetime){
-            interaction.editReply('The contest has ended already. :(. It ended on ' + contestParam.windowEnd.toString() + '.');
+            interaction.editReply('The contest has ended already. :(. It ended on ' + new Date(contestParam.windowEnd).toString() + '.');
             return;
         }
         if(contestParam.whitelist){
