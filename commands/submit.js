@@ -9,36 +9,36 @@ module.exports = {
         id = interaction.options.getString('id');
         answer = interaction.options.getString('answer');
         if(interaction.channel.type != 1) {
-            await interaction.editReply('Please use this command in DMs.');
+            interaction.editReply('Please use this command in DMs.');
             return;
         }
         let userParam = await dbclient.collection("users").findOne({id: interaction.user.id});
         if(!userParam){
-            await interaction.editReply('You are not in a contest.');
+            interaction.editReply('You are not in a contest.');
             return;
         }
         if(userParam.currContest == ''){
-            await interaction.editReply('You are not in a contest.');
+            interaction.editReply('You are not in a contest.');
             return;
         }
         if(userParam.timerEnd < Date.now()){
-            await interaction.editReply('Your time is up. However, you aren\'t supposed to see this message. Please contact an admin as this means that the bot likely crashed during your window.');
+            interaction.editReply('Your time is up. However, you aren\'t supposed to see this message. Please contact an admin as this means that the bot likely crashed during your window.');
             return;
         }
         const contestParam = await dbclient.collection("contests").findOne({code: userParam.currContest});
         if(isNaN(id)){
-            await interaction.editReply({content: 'Invalid problem number.', ephemeral: true});
+            interaction.editReply({content: 'Invalid problem number.', ephemeral: true});
             return;
         }
         id = parseInt(id);
         if(id < 1 || id > contestParam.numProblems){
-            await interaction.editReply({content: 'Invalid problem number.', ephemeral: true});
+            interaction.editReply({content: 'Invalid problem number.', ephemeral: true});
             return;
         }
         if(contestParam.longForm){
-            await interaction.editReply({content: 'This is a long-form contest. Please use `!submit <problem_id>` and attach the files you are submitting.', ephemeral: true});
+            interaction.editReply({content: 'This is a long-form contest. Please use `!submit <problem_id>` and attach the files you are submitting.', ephemeral: true});
         } else {
-            await interaction.editReply({content: 'Your answer has been submitted.', ephemeral: true});
+            interaction.editReply({content: 'Your answer has been submitted.', ephemeral: true});
             userParam.answers[id-1] = answer;
             dbclient.collection("users").updateOne({id: interaction.user.id}, {$set: userParam}, {upsert: true});
         }

@@ -12,13 +12,13 @@ module.exports = {
         const contestParam = await dbclient.collection("contests").findOne({code: contestCode});
         const submissions = await dbclient.collection("submissions").find({contest: contestCode});
         if(!contestParam){
-            await interaction.reply('Invalid contest code.');
+            interaction.reply('Invalid contest code.');
             return;
         }
         const settings = require(path.join(__dirname, '..','settings.json'));
         const member = await interaction.guild.members.fetch(interaction.user);
         if(Date.now() < new Date(contestParam.windowEnd) && !member._roles.includes(settings.adminRole)){
-            await interaction.editReply('You are not allowed to view the results of a contest that has not ended yet.');
+            interaction.editReply('You are not allowed to view the results of a contest that has not ended yet.');
             return;
         }
         let results = [];
@@ -55,7 +55,7 @@ module.exports = {
             description: 'Page 1',
             fields: fields,
         };
-        await interaction.editReply({embeds: [embed], components: [row]});
+        interaction.editReply({embeds: [embed], components: [row]});
 
         const collector = interaction.channel.createMessageComponentCollector({time: 3600000});
         collector.on('collect', async r => {
