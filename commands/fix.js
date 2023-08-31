@@ -9,7 +9,7 @@ module.exports = {
         const settings = require(path.join(__dirname, '..','settings.json'));
         const member = await interaction.guild.members.fetch(interaction.user);
         if(!member._roles.includes(settings.adminRole)){
-            await interaction.editReply('You are not allowed to use this command.');
+            interaction.editReply('You are not allowed to use this command.');
             return;
         }
         const users_fixed = [];
@@ -47,7 +47,7 @@ module.exports = {
             userParam.eligible = false;
             userParam.timerEnd = 0;
             userParam.answers = [];
-            await dbclient.collection("users").updateOne({id: userParam.id}, {$set: userParam});
+            dbclient.collection("users").updateOne({id: userParam.id}, {$set: userParam});
             let pcRole;
             if(interaction.guild){
                 pcRole = interaction.guild.roles.cache.find(role => role.name == contestCode+' postcontest');
@@ -70,7 +70,7 @@ module.exports = {
                 title: 'Fixed Users',
                 fields: fields,
             };
-            await interaction.editReply({embeds: [embed]});
+            interaction.editReply({embeds: [embed]});
         }
     },
 }

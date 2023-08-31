@@ -20,36 +20,36 @@ module.exports = {
             };
         }
         if(userParam.currContest != ''){
-            await interaction.editReply('You are already in a contest.');
+            interaction.editReply('You are already in a contest.');
             return;
         }
         const contestParam = await dbclient.collection("contests").findOne({code: contestCode});
         if(!contestParam){
-            await interaction.editReply('Invalid contest code.');
+            interaction.editReply('Invalid contest code.');
             return;
         }
         datetime = Date.now();
         if(new Date(contestParam.windowStart) > datetime){
-            await interaction.editReply('The contest has not started yet. It will start on ' + contestParam.windowStart.toString() + '.');
+            interaction.editReply('The contest has not started yet. It will start on ' + contestParam.windowStart.toString() + '.');
             return;
         }
         if(new Date(contestParam.windowEnd) < datetime){
-            await interaction.editReply('The contest has ended already. :(. It ended on ' + contestParam.windowEnd.toString() + '.');
+            interaction.editReply('The contest has ended already. :(. It ended on ' + contestParam.windowEnd.toString() + '.');
             return;
         }
         if(contestParam.whitelist){
             if(!contestParam.list.includes(interaction.user.id)){
-                await interaction.editReply('You are not eligible for this contest.');
+                interaction.editReply('You are not eligible for this contest.');
                 return;
             }
         } else {
             if(contestParam.list.includes(interaction.user.id)){
-                await interaction.editReply('You are not eligible for this contest.');
+                interaction.editReply('You are not eligible for this contest.');
                 return;
             }
         }
         if(userParam.completedContests.includes(contestCode)){
-            await interaction.editReply('You have already completed this contest.');
+            interaction.editReply('You have already completed this contest.');
             return;
         }
         userParam.currContest = contestCode;
@@ -69,7 +69,7 @@ module.exports = {
             content: contestParam.name + '\n' + contestParam.rules,
             components: [row],
         });
-        await interaction.editReply('Instructions have been sent to your DMs.');
+        interaction.editReply('Instructions have been sent to your DMs.');
 
         const collector = clicks.createMessageComponentCollector({
             componentType: ComponentType.Button,
@@ -92,7 +92,7 @@ module.exports = {
             'Use `/time` to see how much time you have left.\n'+
             'Use `/submissions` to see your current submissions.';
             
-            const clicks2 = await r.user.send({
+            const clicks2 = r.user.send({
                 content: start_text,
                 components: [row2],
             });

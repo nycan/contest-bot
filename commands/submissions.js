@@ -5,20 +5,20 @@ module.exports = {
     async execute(interaction, dbclient) {
         interaction.deferReply();
         if(interaction.channel.type != 1) {
-            await interaction.editReply('Please use this command in DMs.');
+            interaction.editReply('Please use this command in DMs.');
             return;
         }
         let userParam = await dbclient.collection("users").findOne({id: interaction.user.id});
         if(!userParam){
-            await interaction.editReply('You are not in a contest.');
+            interaction.editReply('You are not in a contest.');
             return;
         }
         if(userParam.currContest == ''){
-            await interaction.editReply('You are not in a contest.');
+            interaction.editReply('You are not in a contest.');
             return;
         }
         if(userParam.timerEnd < Date.now()){
-            await interaction.editReply('Your time is up. However, you aren\'t supposed to see this message. Please contact an admin as this means that the bot likely crashed during your window.');
+            interaction.editReply('Your time is up. However, you aren\'t supposed to see this message. Please contact an admin as this means that the bot likely crashed during your window.');
             return;
         }
         fields = [];
@@ -41,6 +41,6 @@ module.exports = {
             fields: fields,
             color: 0xd10a0a,
         };
-        await interaction.editReply({embeds: [embed], ephemeral: true});
+        interaction.editReply({embeds: [embed], ephemeral: true});
     },
 }
