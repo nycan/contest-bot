@@ -85,14 +85,21 @@ module.exports = {
                 userParam.eligible = false;
             }
             r.update({content: contestParam.name + '\n' + contestParam.rules + '\n\nYou have confirmed your eligibility.', components: [row]});
-           
-            const start_text = 'Once you are ready to start the contest, click the button below.\n'+
-            'You will have '+contestParam.duration+' minute(s) to complete the contest.\n'+
-            'Use `/submit` to submit your solutions.\n'+
-            'Use `/time` to see how much time you have left.\n'+
-            'Use `/submissions` to see your current submissions.';
-            
-            const clicks2 = r.user.send({
+            let start_text;
+            if(contestParam.longForm){
+                start_text = 'Once you are ready to start the contest, click the button below.\n'+
+                'You will have '+contestParam.duration+' minute(s) to complete the contest.\n'+
+                'Use `!submit` and attach a file to submit your solution. Note that it is not a slash command. **IMPORTANT:** you can only have one file submission. Any files submitted after that will override the first submission.\n'+
+                'Use `/time` to see how much time you have left.\n'+
+                'Use `/submissions` to see your current submissions.';
+            } else {
+                start_text = 'Once you are ready to start the contest, click the button below.\n'+
+                'You will have '+contestParam.duration+' minute(s) to complete the contest.\n'+
+                'Use `/submit` to submit your solutions.\n'+
+                'Use `/time` to see how much time you have left.\n'+
+                'Use `/submissions` to see your current submissions.';
+            }
+            const clicks2 = await r.user.send({
                 content: start_text,
                 components: [row2],
             });
@@ -155,8 +162,7 @@ module.exports = {
                     imgFiles.push(new AttachmentBuilder(path.join(__dirname, '..', 'contestfiles', file)));
                 }
 
-                await r.user.send({files: imgFiles});
-                r.update({content: start_text + '\n\nYour timer ends at '+new Date(userParam.timerEnd).toString()+'.', components: [row2]});
+                await r.user.send({content: start_text + '\n\nYour timer ends at '+new Date(userParam.timerEnd).toString(), files: imgFiles});
             });
 
             collector2.on('end', collected => {
