@@ -47,7 +47,7 @@ module.exports = {
             userParam.eligible = false;
             userParam.timerEnd = 0;
             userParam.answers = [];
-            dbclient.collection("users").updateOne({id: userParam.id}, {$set: userParam});
+            dbclient.collection("users").updateOne({name: userParam.name}, {$set: userParam});
             let pcRole;
             if(interaction.guild){
                 pcRole = interaction.guild.roles.cache.find(role => role.name == contestCode+' postcontest');
