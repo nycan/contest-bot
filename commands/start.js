@@ -9,7 +9,7 @@ module.exports = {
         await interaction.deferReply();
         const settings = require(path.join(__dirname, '..','settings.json'));
         const contestCode = interaction.options.getString('name');
-        let userParam = await dbclient.collection("users").findOne({name: interaction.user.tag});
+        let userParam = await dbclient.collection("users").findOne({id: interaction.user.id});
         if(!userParam){
             userParam = {
                 currContest: '',
@@ -17,7 +17,6 @@ module.exports = {
                 timerEnd: 0,
                 answers: [],
                 completedContests: [],
-                name: interaction.user.tag,
             };
         }
         if(userParam.currContest != ''){
@@ -39,12 +38,12 @@ module.exports = {
             return;
         }
         if(contestParam.whitelist){
-            if(!contestParam.list.includes(interaction.user.tag)){
+            if(!contestParam.list.includes(interaction.user.id)){
                 interaction.editReply('You are not eligible for this contest.');
                 return;
             }
         } else {
-            if(contestParam.list.includes(interaction.user.tag)){
+            if(contestParam.list.includes(interaction.user.id)){
                 interaction.editReply('You are not eligible for this contest.');
                 return;
             }
@@ -54,7 +53,7 @@ module.exports = {
             return;
         }
         userParam.currContest = contestCode;
-        dbclient.collection("users").updateOne({name: interaction.user.tag}, {$set: userParam}, {upsert: true});
+        dbclient.collection("users").updateOne({id: interaction.user.id}, {$set: userParam}, {upsert: true});
 
         const confirmEligibility = new ButtonBuilder()
             .setCustomId('confirmEligibility').setLabel('I\'m eligible for awards/recognition').setStyle(3);
@@ -114,9 +113,9 @@ module.exports = {
                 r.deferUpdate();
                 row2.components[0].setDisabled(true);
                 userParam.timerEnd = Math.min(Date.now() + contestParam.duration*60000, new Date(contestParam.windowEnd));
-                dbclient.collection("users").updateOne({name: interaction.user.tag}, {$set: userParam}, {upsert: true});
+                dbclient.collection("users").updateOne({id: interaction.user.id}, {$set: userParam}, {upsert: true});
                 setTimeout(async function(){
-                    const userParam2 = await dbclient.collection("users").findOne({name: interaction.user.tag});
+                    const userParam2 = await dbclient.collection("users").findOne({id: interaction.user.id});
                     if(!settings.debug){
                         userParam2.completedContests.push(userParam2.currContest);
                     }
@@ -132,7 +131,7 @@ module.exports = {
                     }
                     if(!settings.debug){
                         dbclient.collection("submissions").insertOne({
-                            "name": userParam2.name,
+                            "name": interaction.user.displayName,
                             "official": userParam2.eligible,
                             "time": Date.now(),
                             "score": score,
@@ -145,7 +144,7 @@ module.exports = {
                     userParam2.eligible = false;
                     userParam2.timerEnd = 0;
                     userParam2.answers = [];
-                    dbclient.collection("users").updateOne({name: interaction.user.tag}, {$set: userParam2}, {upsert: true});
+                    dbclient.collection("users").updateOne({id: interaction.user.id}, {$set: userParam2}, {upsert: true});
                     let pcRole;
                     if(interaction.guild){
                         pcRole = interaction.guild.roles.cache.find(role => role.name == contestCode+' postcontest');
@@ -171,7 +170,7 @@ module.exports = {
                 startTimer.setDisabled(true);
                 row2.components[0] = startTimer;
                 clicks2.edit({content: "Please use `/start` again, as this interaction has ran out.", components: [row2]});
-                dbclient.collection("users").updateOne({name: interaction.user.tag}, {$set: {currContest: '', eligible: false}}, {upsert: true});
+                dbclient.collection("users").updateOne({id: interaction.user.id}, {$set: {currContest: '', eligible: false}}, {upsert: true});
             });
         });
         collector.on('end', collected => {
@@ -180,7 +179,7 @@ module.exports = {
             row.components[0] = confirmEligibility;
             row.components[1] = cancelEligibility;
             clicks.edit({content: "Please use `/start` again, as this interaction has ran out.", components: [row]});
-            dbclient.collection("users").updateOne({name: interaction.user.tag}, {$set: {currContest: '', eligible: false}}, {upsert: true});
+            dbclient.collection("users").updateOne({id: interaction.user.id}, {$set: {currContest: '', eligible: false}}, {upsert: true});
         });
     },
 }

@@ -12,7 +12,7 @@ module.exports = {
             interaction.editReply('Please use this command in DMs.');
             return;
         }
-        let userParam = await dbclient.collection("users").findOne({name: interaction.user.tag});
+        let userParam = await dbclient.collection("users").findOne({id: interaction.user.id});
         if(!userParam){
             interaction.editReply('You are not in a contest.');
             return;
@@ -40,7 +40,7 @@ module.exports = {
         } else {
             interaction.editReply({content: 'Your answer has been submitted.', ephemeral: true});
             userParam.answers[id-1] = answer;
-            dbclient.collection("users").updateOne({name: interaction.user.tag}, {$set: userParam}, {upsert: true});
+            dbclient.collection("users").updateOne({id: interaction.user.id}, {$set: userParam}, {upsert: true});
         }
     },
 }
