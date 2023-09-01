@@ -1,6 +1,6 @@
 module.exports = {
     async execute(message, dbclient) {
-        let userParam = await dbclient.collection("users").findOne({id: message.author.id});
+        let userParam = await dbclient.collection("users").findOne({name: message.author.tag});
         if(!userParam){
             message.reply('You are not in a contest.');
             return;
@@ -29,6 +29,6 @@ module.exports = {
         }
         message.reply({content: 'Your answer has been changed.', ephemeral: true});
         userParam.answers[0] = files.first().url;
-        dbclient.collection("users").updateOne({id: message.author.id}, {$set: userParam}, {upsert: true});
+        dbclient.collection("users").updateOne({name: message.author.tag}, {$set: userParam}, {upsert: true});
     }
 }
