@@ -10,7 +10,7 @@ module.exports = {
         const contestCode = interaction.options.getString('contest');
         const showAll = interaction.options.getBoolean('show-all');
         const contestParam = await dbclient.collection("contests").findOne({code: contestCode});
-        const submissions = await dbclient.collection("submissions").find({contest: contestCode});
+        const subs = await dbclient.collection("submissions").find({contest: contestCode});
         if(!contestParam){
             interaction.reply('Invalid contest code.');
             return;
@@ -21,6 +21,11 @@ module.exports = {
             interaction.editReply('You are not allowed to view the results of a contest that has not ended yet.');
             return;
         }
+        if(!subs){
+            interaction.reply('No submissions yet.');
+            return;
+        }
+        const submissions = await subs.toArray();
         let results = [];
         if(showAll){
             results = submissions

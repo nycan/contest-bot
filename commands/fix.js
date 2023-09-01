@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 module.exports = {
-    data: new SlashCommandBuilder().setName('fix').setDescription('Fix up stuff if the bot crashed.'),
+    data: new SlashCommandBuilder().setName('fix').setDescription('Fix up stuff if the bot crashed (admin-only).'),
     async execute(interaction, dbclient) {
         await interaction.deferReply();
         const settings = require(path.join(__dirname, '..','settings.json'));
