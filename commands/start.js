@@ -136,6 +136,7 @@ module.exports = {
                             "time": Date.now(),
                             "score": score,
                             "answers": userParam2.answers,
+                            "contest": userParam2.currContest,
                         });
                     }
 
