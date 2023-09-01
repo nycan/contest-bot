@@ -10,7 +10,7 @@ module.exports = {
             interaction.editReply('Please use this command in DMs.');
             return;
         }
-        let userParam = await dbclient.collection("users").findOne({id: interaction.user.id});
+        let userParam = await dbclient.collection("users").findOne({name: interaction.user.tag});
         if(!userParam){
             interaction.editReply('You are not in a contest.');
             return;
