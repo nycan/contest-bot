@@ -3,13 +3,13 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 module.exports = {
-    data: new SlashCommandBuilder().setName('fix').setDescription('Fix up stuff if the bot crashed.'),
+    data: new SlashCommandBuilder().setName('fix').setDescription('Fix up stuff if the bot crashed (admin-only).'),
     async execute(interaction, dbclient) {
         await interaction.deferReply();
         const settings = require(path.join(__dirname, '..','settings.json'));
         const member = await interaction.guild.members.fetch(interaction.user);
         if(!member._roles.includes(settings.adminRole)){
-            await interaction.editReply('You are not allowed to use this command.');
+            interaction.editReply('You are not allowed to use this command.');
             return;
         }
         const users_fixed = [];
@@ -47,7 +47,7 @@ module.exports = {
             userParam.eligible = false;
             userParam.timerEnd = 0;
             userParam.answers = [];
-            await dbclient.collection("users").updateOne({id: userParam.id}, {$set: userParam});
+            dbclient.collection("users").updateOne({id: userParam.id}, {$set: userParam});
             let pcRole;
             if(interaction.guild){
                 pcRole = interaction.guild.roles.cache.find(role => role.name == contestCode+' postcontest');
@@ -70,7 +70,7 @@ module.exports = {
                 title: 'Fixed Users',
                 fields: fields,
             };
-            await interaction.editReply({embeds: [embed]});
+            interaction.editReply({embeds: [embed]});
         }
     },
 }

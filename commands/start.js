@@ -20,36 +20,36 @@ module.exports = {
             };
         }
         if(userParam.currContest != ''){
-            await interaction.editReply('You are already in a contest.');
+            interaction.editReply('You are already in a contest.');
             return;
         }
         const contestParam = await dbclient.collection("contests").findOne({code: contestCode});
         if(!contestParam){
-            await interaction.editReply('Invalid contest code.');
+            interaction.editReply('Invalid contest code.');
             return;
         }
         datetime = Date.now();
         if(new Date(contestParam.windowStart) > datetime){
-            await interaction.editReply('The contest has not started yet. It will start on ' + contestParam.windowStart.toString() + '.');
+            interaction.editReply('The contest has not started yet. It will start on ' + new Date(contestParam.windowStart).toString() + '.');
             return;
         }
         if(new Date(contestParam.windowEnd) < datetime){
-            await interaction.editReply('The contest has ended already. :(. It ended on ' + contestParam.windowEnd.toString() + '.');
+            interaction.editReply('The contest has ended already. :(. It ended on ' + new Date(contestParam.windowEnd).toString() + '.');
             return;
         }
         if(contestParam.whitelist){
             if(!contestParam.list.includes(interaction.user.id)){
-                await interaction.editReply('You are not eligible for this contest.');
+                interaction.editReply('You are not eligible for this contest.');
                 return;
             }
         } else {
             if(contestParam.list.includes(interaction.user.id)){
-                await interaction.editReply('You are not eligible for this contest.');
+                interaction.editReply('You are not eligible for this contest.');
                 return;
             }
         }
         if(userParam.completedContests.includes(contestCode)){
-            await interaction.editReply('You have already completed this contest.');
+            interaction.editReply('You have already completed this contest.');
             return;
         }
         userParam.currContest = contestCode;
@@ -69,7 +69,7 @@ module.exports = {
             content: contestParam.name + '\n' + contestParam.rules,
             components: [row],
         });
-        await interaction.editReply('Instructions have been sent to your DMs.');
+        interaction.editReply('Instructions have been sent to your DMs.');
 
         const collector = clicks.createMessageComponentCollector({
             componentType: ComponentType.Button,
@@ -85,13 +85,20 @@ module.exports = {
                 userParam.eligible = false;
             }
             r.update({content: contestParam.name + '\n' + contestParam.rules + '\n\nYou have confirmed your eligibility.', components: [row]});
-           
-            const start_text = 'Once you are ready to start the contest, click the button below.\n'+
-            'You will have '+contestParam.duration+' minute(s) to complete the contest.\n'+
-            'Use `/submit` to submit your solutions.\n'+
-            'Use `/time` to see how much time you have left.\n'+
-            'Use `/submissions` to see your current submissions.';
-            
+            let start_text;
+            if(contestParam.longForm){
+                start_text = 'Once you are ready to start the contest, click the button below.\n'+
+                'You will have '+contestParam.duration+' minute(s) to complete the contest.\n'+
+                'Use `!submit` and attach a file to submit your solution. Note that it is not a slash command. **IMPORTANT:** you can only have one file submission. Any files submitted after that will override the first submission.\n'+
+                'Use `/time` to see how much time you have left.\n'+
+                'Use `/submissions` to see your current submissions.';
+            } else {
+                start_text = 'Once you are ready to start the contest, click the button below.\n'+
+                'You will have '+contestParam.duration+' minute(s) to complete the contest.\n'+
+                'Use `/submit` to submit your solutions.\n'+
+                'Use `/time` to see how much time you have left.\n'+
+                'Use `/submissions` to see your current submissions.';
+            }
             const clicks2 = await r.user.send({
                 content: start_text,
                 components: [row2],
@@ -103,6 +110,7 @@ module.exports = {
             });
 
             collector2.on('collect', async r =>{
+                r.deferUpdate();
                 row2.components[0].setDisabled(true);
                 userParam.timerEnd = Math.min(Date.now() + contestParam.duration*60000, new Date(contestParam.windowEnd));
                 dbclient.collection("users").updateOne({id: interaction.user.id}, {$set: userParam}, {upsert: true});
@@ -128,6 +136,7 @@ module.exports = {
                             "time": Date.now(),
                             "score": score,
                             "answers": userParam2.answers,
+                            "contest": userParam2.currContest,
                         });
                     }
 
@@ -154,12 +163,23 @@ module.exports = {
                     imgFiles.push(new AttachmentBuilder(path.join(__dirname, '..', 'contestfiles', file)));
                 }
 
-                await r.user.send({files: imgFiles});
-                r.update({content: start_text + '\n\nYour timer ends at '+new Date(userParam.timerEnd).toString()+'.', components: [row2]});
+                await r.user.send({content: start_text + '\n\nYour timer ends at '+new Date(userParam.timerEnd).toString(), files: imgFiles});
             });
 
-            collector2.on('end', collected => {});
+            collector2.on('end', collected => {
+                startTimer.setDisabled(true);
+                row2.components[0] = startTimer;
+                clicks2.edit({content: "Please use `/start` again, as this interaction has ran out.", components: [row2]});
+                dbclient.collection("users").updateOne({id: interaction.user.id}, {$set: {currContest: '', eligible: false}}, {upsert: true});
+            });
         });
-        collector.on('end', collected => {});
+        collector.on('end', collected => {
+            confirmEligibility.setDisabled(true);
+            cancelEligibility.setDisabled(true);
+            row.components[0] = confirmEligibility;
+            row.components[1] = cancelEligibility;
+            clicks.edit({content: "Please use `/start` again, as this interaction has ran out.", components: [row]});
+            dbclient.collection("users").updateOne({id: interaction.user.id}, {$set: {currContest: '', eligible: false}}, {upsert: true});
+        });
     },
 }
