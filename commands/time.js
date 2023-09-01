@@ -4,25 +4,28 @@ const path = require('node:path');
 
 module.exports = {
     data: new SlashCommandBuilder().setName('time').setDescription('Information about how much time is left.'),
-    async execute(interaction) {
+    async execute(interaction,dbclient) {
+        await interaction.deferReply();
         if(interaction.channel.type != 1) {
-            await interaction.reply('Please use this command in DMs.');
+            interaction.editReply('Please use this command in DMs.');
             return;
         }
-        const userFile = path.join(__dirname, '..', 'users', interaction.user.id+'.json');
-        let userParam = {};
-        if(fs.existsSync(userFile)){
-            userParam = require(userFile);
-        } else {
-            await interaction.reply('You are not in a contest.');
+        let userParam = await dbclient.collection("users").findOne({id: interaction.user.id});
+        if(!userParam){
+            interaction.editReply('You are not in a contest.');
+            return;
         }
         if(userParam.currContest == ''){
-            await interaction.reply('You are not in a contest.');
+            interaction.editReply('You are not in a contest.');
+            return;
+        }
+        if(userParam.timerEnd < Date.now()){
+            interaction.editReply('Your time is up. However, you aren\'t supposed to see this message. Please contact an admin as this means that the bot likely crashed during your window.');
             return;
         }
         const time = Date.now();
         const remaining = new Date(userParam.timerEnd - time);
-        await interaction.reply({content:
+        interaction.editReply({content:
             'You have ' + remaining.getUTCHours() + ' hours, ' + remaining.getUTCMinutes() + ' minutes, and ' + remaining.getUTCSeconds() + ' seconds left.',
         ephemeral: true});
     },

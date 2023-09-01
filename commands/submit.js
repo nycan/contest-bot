@@ -1,50 +1,46 @@
-const { SlashCommandBuilder, ModalBuilder, TextInputBuilder, ActionRowBuilder, TextInputStyle } = require('discord.js');
-const fs = require('node:fs');
-const path = require('node:path');
+const { SlashCommandBuilder } = require('discord.js');
 
 module.exports = {
     data: new SlashCommandBuilder().setName('submit').setDescription('Submit an answer.')
     .addStringOption(option =>option.setName('id').setDescription('The problem number.').setRequired(true))
     .addStringOption(option =>option.setName('answer').setDescription('Your answer to the problem.').setRequired(true)),
-    async execute(interaction) {
+    async execute(interaction, dbclient) {
+        await interaction.deferReply();
         id = interaction.options.getString('id');
         answer = interaction.options.getString('answer');
         if(interaction.channel.type != 1) {
-            await interaction.reply('Please use this command in DMs.');
+            interaction.editReply('Please use this command in DMs.');
             return;
         }
-        const userFile = path.join(__dirname, '..', 'users', interaction.user.id+'.json');
-        let userParam = {};
-        if(fs.existsSync(userFile)){
-            userParam = require(userFile);
-        } else {
-            await interaction.reply('You are not in a contest.');
+        let userParam = await dbclient.collection("users").findOne({id: interaction.user.id});
+        if(!userParam){
+            interaction.editReply('You are not in a contest.');
+            return;
         }
         if(userParam.currContest == ''){
-            await interaction.reply('You are not in a contest.');
+            interaction.editReply('You are not in a contest.');
             return;
         }
-        const contestFile = path.join(__dirname, '..','contests',userParam.currContest+'.json');
-        const contestParam = require(contestFile);
+        if(userParam.timerEnd < Date.now()){
+            interaction.editReply('Your time is up. However, you aren\'t supposed to see this message. Please contact an admin as this means that the bot likely crashed during your window.');
+            return;
+        }
+        const contestParam = await dbclient.collection("contests").findOne({code: userParam.currContest});
         if(isNaN(id)){
-            await interaction.reply('Invalid problem number.');
+            interaction.editReply({content: 'Invalid problem number.', ephemeral: true});
             return;
         }
         id = parseInt(id);
         if(id < 1 || id > contestParam.numProblems){
-            await interaction.reply('Invalid problem number.');
+            interaction.editReply({content: 'Invalid problem number.', ephemeral: true});
             return;
         }
         if(contestParam.longForm){
-            const form = new ModalBuilder().setCustomId('submit').setTitle('Submit Solution to problem '+id);
-            const input = new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('solution').setStyle(TextInputStyle.Paragraph)
-                .setLabel('Your solution.').setPlaceholder('You can use LaTeX here. To submit a file, include a link to it.'));
-            form.addComponents(input);
-            await interaction.showModal(form);
+            interaction.editReply({content: 'This is a long-form contest. Please use `!submit` and attach the file you are submitting.', ephemeral: true});
         } else {
-            await interaction.reply({content: 'Your answer has been submitted.', ephemeral: true});
+            interaction.editReply({content: 'Your answer has been submitted.', ephemeral: true});
             userParam.answers[id-1] = answer;
-            fs.writeFileSync(userFile, JSON.stringify(userParam));
+            dbclient.collection("users").updateOne({id: interaction.user.id}, {$set: userParam}, {upsert: true});
         }
     },
 }

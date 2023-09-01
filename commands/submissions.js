@@ -1,38 +1,46 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const fs = require('node:fs');
-const path = require('node:path');
+const { SlashCommandBuilder } = require('discord.js');
 
 module.exports = {
-    data: new SlashCommandBuilder().setName('submisions').setDescription('View your current submissions.'),
-    async execute(interaction) {
+    data: new SlashCommandBuilder().setName('submissions').setDescription('View your current submissions.'),
+    async execute(interaction, dbclient) {
+        await interaction.deferReply();
         if(interaction.channel.type != 1) {
-            await interaction.reply('Please use this command in DMs.');
+            interaction.editReply('Please use this command in DMs.');
             return;
         }
-        const userFile = path.join(__dirname, '..', 'users', interaction.user.id+'.json');
-        let userParam = {};
-        if(fs.existsSync(userFile)){
-            userParam = require(userFile);
-        } else {
-            await interaction.reply('You are not in a contest.');
+        let userParam = await dbclient.collection("users").findOne({id: interaction.user.id});
+        if(!userParam){
+            interaction.editReply('You are not in a contest.');
+            return;
         }
         if(userParam.currContest == ''){
-            await interaction.reply('You are not in a contest.');
+            interaction.editReply('You are not in a contest.');
+            return;
+        }
+        if(userParam.timerEnd < Date.now()){
+            interaction.editReply('Your time is up. However, you aren\'t supposed to see this message. Please contact an admin as this means that the bot likely crashed during your window.');
             return;
         }
         fields = [];
-        const contestParam = require(path.join(__dirname, '..', 'contests', userParam.currContest+'.json'));
-        for(let i = 0; i < contestParam.numProblems; ++i){
-            if(userParam.answers[i]){
-                fields.push({
-                    name: 'Problem ' + (i+1),
-                    value: String(userParam.answers[i]),
-                });
-            } else {
-                fields.push({
-                    name: 'Problem ' + (i+1),
-                    value: 'Not submitted',
-                });
+        const contestParam = await dbclient.collection("contests").findOne({code: userParam.currContest});
+        if(contestParam.longForm){
+            fields = [{
+                name: 'Submission',
+                value: userParam.answers[0]
+            }]
+        } else {
+            for(let i = 0; i < contestParam.numProblems; ++i){
+                if(userParam.answers[i]){
+                    fields.push({
+                        name: 'Problem ' + (i+1),
+                        value: String(userParam.answers[i]),
+                    });
+                } else {
+                    fields.push({
+                        name: 'Problem ' + (i+1),
+                        value: 'Not submitted',
+                    });
+                }
             }
         }
         const embed = {
@@ -40,6 +48,6 @@ module.exports = {
             fields: fields,
             color: 0xd10a0a,
         };
-        await interaction.reply({embeds: [embed], ephemeral: true});
+        interaction.editReply({embeds: [embed], ephemeral: true});
     },
 }

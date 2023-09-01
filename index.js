@@ -1,10 +1,13 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { Client, Collection, Events, GatewayIntentBits, Partials } = require('discord.js');
+const { MongoClient } = require('mongodb');
 require('dotenv').config()
 token = process.env.DISCORD_TOKEN;
+connection_string = process.env.MONGO_CONNECTION_STRING;
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds], partials: [Partials.Channel] });
+const client = new Client({ intents: [GatewayIntentBits.Guilds,GatewayIntentBits.DirectMessages], partials: [Partials.Channel] });
+const db = new MongoClient(connection_string);
 
 client.commands = new Collection();
 const commandsPath = path.join(__dirname,'commands');
@@ -22,6 +25,17 @@ for (const file of commandsFiles) {
 client.once(Events.ClientReady, c => {console.log(`Logged in as ${c.user.tag}`);});
 client.login(token);
 
+client.on(Events.MessageCreate, async message => {
+	if(!message.content.startsWith('!')) return;
+	if(message.content.startsWith('!submit')){
+		const command = require('./commands/submitfile.js');
+		await command.execute(message,dbclient);
+	}
+});
+
+db.on('commandStarted', started => console.log(started));
+const dbclient = db.db("contest-bot");
+
 client.on(Events.InteractionCreate, async interaction => {
 	if (!interaction.isChatInputCommand()) return;
 
@@ -32,14 +46,27 @@ client.on(Events.InteractionCreate, async interaction => {
 		return;
 	}
 
-	try {
-		await command.execute(interaction);
-	} catch (error) {
+	command.execute(interaction, dbclient).catch( (error) => {
 		console.error(error);
 		if (interaction.replied || interaction.deferred) {
-			await interaction.followUp({ content: 'There was an error while executing this command!', ephemeral: true });
+			interaction.followUp({ content: 'There was an error while executing this command!', ephemeral: true });
 		} else {
-			await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
+			interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
 		}
-	}
+	})
+});
+
+process.on('unhandledRejection', error => {
+	console.error('Unhandled promise rejection:', error);
+	fs.appendFile('log.txt', error.stack, () => {});
+});
+
+process.on('uncaughtException', error => {
+	console.error('Uncaught exception:', error);
+	fs.appendFile('log.txt', error.stack, () => {});
+});
+
+process.on("beforeExit", () => {
+	db.close();
+	client.destroy();
 });
