@@ -131,7 +131,7 @@ module.exports = {
                     }
                     if(!settings.debug){
                         dbclient.collection("submissions").insertOne({
-                            "name": interaction.user.globalName,
+                            "name": interaction.user.displayName,
                             "official": userParam2.eligible,
                             "time": Date.now(),
                             "score": score,
