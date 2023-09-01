@@ -3,7 +3,7 @@ const { SlashCommandBuilder } = require('discord.js');
 module.exports = {
     data: new SlashCommandBuilder().setName('submissions').setDescription('View your current submissions.'),
     async execute(interaction, dbclient) {
-        interaction.deferReply();
+        await interaction.deferReply();
         if(interaction.channel.type != 1) {
             interaction.editReply('Please use this command in DMs.');
             return;
@@ -23,17 +23,24 @@ module.exports = {
         }
         fields = [];
         const contestParam = await dbclient.collection("contests").findOne({code: userParam.currContest});
-        for(let i = 0; i < contestParam.numProblems; ++i){
-            if(userParam.answers[i]){
-                fields.push({
-                    name: 'Problem ' + (i+1),
-                    value: String(userParam.answers[i]),
-                });
-            } else {
-                fields.push({
-                    name: 'Problem ' + (i+1),
-                    value: 'Not submitted',
-                });
+        if(contestParam.longForm){
+            fields = [{
+                name: 'Submission',
+                value: userParam.answers[0]
+            }]
+        } else {
+            for(let i = 0; i < contestParam.numProblems; ++i){
+                if(userParam.answers[i]){
+                    fields.push({
+                        name: 'Problem ' + (i+1),
+                        value: String(userParam.answers[i]),
+                    });
+                } else {
+                    fields.push({
+                        name: 'Problem ' + (i+1),
+                        value: 'Not submitted',
+                    });
+                }
             }
         }
         const embed = {

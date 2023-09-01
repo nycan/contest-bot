@@ -36,7 +36,7 @@ module.exports = {
             return;
         }
         if(contestParam.longForm){
-            interaction.editReply({content: 'This is a long-form contest. Please use `!submit <problem_id>` and attach the files you are submitting.', ephemeral: true});
+            interaction.editReply({content: 'This is a long-form contest. Please use `!submit` and attach the file you are submitting.', ephemeral: true});
         } else {
             interaction.editReply({content: 'Your answer has been submitted.', ephemeral: true});
             userParam.answers[id-1] = answer;

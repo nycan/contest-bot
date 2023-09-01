@@ -46,7 +46,7 @@ client.on(Events.InteractionCreate, async interaction => {
 		return;
 	}
 
-	await command.execute(interaction, dbclient).catch( (error) => {
+	command.execute(interaction, dbclient).catch( (error) => {
 		console.error(error);
 		if (interaction.replied || interaction.deferred) {
 			interaction.followUp({ content: 'There was an error while executing this command!', ephemeral: true });
@@ -58,7 +58,15 @@ client.on(Events.InteractionCreate, async interaction => {
 
 process.on('unhandledRejection', error => {
 	console.error('Unhandled promise rejection:', error);
+	fs.appendFile('log.txt', error.stack, () => {});
+});
+
+process.on('uncaughtException', error => {
+	console.error('Uncaught exception:', error);
+	fs.appendFile('log.txt', error.stack, () => {});
+});
+
+process.on("beforeExit", () => {
 	db.close();
 	client.destroy();
-	fs.appendFile('log.txt', error.stack, () => {});
 });
